@@ -1,0 +1,33 @@
+id: acars_acars
+label: acars
+category: '[acars]'
+
+parameters:
+- id: seuil
+  label: seuil
+  dtype: float
+- id: filename
+  label: filename
+  dtype: string
+
+inputs:
+- label: in
+  domain: stream
+  dtype: float
+  vlen: 1
+  optional: 0
+
+templates:
+  imports: import acars
+  make: acars.acars(${seuil}, ${filename})
+  callbacks:
+   - set_seuil(${seuil})
+
+#  Make one 'inputs' list entry per input and one 'outputs' list entry per output.
+#  Keys include:
+#      * label (an identifier for the GUI)
+#      * domain (optional - stream or message. Default is stream)
+#      * dtype (e.g. int, float, complex, byte, short, xxx_vector, ...)
+#      * vlen (optional - data stream vector length. Default is 1)
+#      * optional (optional - set to 1 for optional inputs. Default is 0)
+file_format: 1
