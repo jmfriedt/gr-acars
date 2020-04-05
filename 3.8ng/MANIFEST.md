@@ -19,3 +19,9 @@ message is not detected
 * replaces libfftw with the native GNU Radio FFT wrapper, allowing for multiple blocks
 to be inserted in the same flowgraph (see example)
 * attempts at tracking the bitrate clock
+
+Compile using 
+``cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ..``
+
+The latest version is 3.8ng for the New Generation algorithm aimed at
+tracking the datastream clock.
