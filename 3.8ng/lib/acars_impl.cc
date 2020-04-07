@@ -11,13 +11,13 @@
 
 #include <gnuradio/io_signature.h>
 #include "acars_impl.h"
-#include<time.h>
+#include <time.h>
 
 #define fe        48000   // sampling frequency
-#define CHUNK_SIZE 1024
+#define CHUNK_SIZE 1024   // minimum number of samples for trigger this processing block
 #define MESSAGE   (220*2) // twice the max message size !
 #define MAXSIZE   (MESSAGE*8*fe) // 48000/2400=20 symbol/bit & 8 bits*260 char=41600
-#define dN  5
+#define dN  	   5      // clock tracking at +/-5 samples
 
 namespace gr {
   namespace acars {
@@ -34,7 +34,7 @@ namespace gr {
      */
     acars_impl::acars_impl(float seuil1, std::string filename)
       : gr::sync_block("acars",
-              gr::io_signature::make(1, 1, sizeof(float)), // max 4 inputs
+              gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0))
               , _seuil(seuil1)
 {
@@ -44,16 +44,23 @@ namespace gr {
   _Ntot=0;
   _N=0;
   _threshold=0.;
-  _FILE=fopen(cfilename,"a");  // faster than allocating big arrays for
+  _FILE=fopen(cfilename,"a");
   _decompte=0;  
-  set_seuil(seuil1);             // each new sentence processed
+  set_seuil(seuil1);            
   _d=(float*)malloc(MAXSIZE*sizeof(float));
   _tout=(char*)malloc(MESSAGE*8);  // bits
-  _toutd=(char*)malloc(MESSAGE*8);  // bits
+  _toutd=(char*)malloc(MESSAGE*8); // bits
   _message=(char*)malloc(MESSAGE); // bytes
-  _somme=(char*)malloc(MESSAGE); // bytes
+  _somme=(char*)malloc(MESSAGE);   // bytes
   printf("threshold value=%f, filename=%s\n",seuil1,cfilename);
   set_output_multiple(CHUNK_SIZE); // only trigger processing if that amount of samples was accumulated
+/*
+Ron Economos (April 5, 2020 10:58 AM)
+To: discuss-gnuradio@gnu.org
+I would use set_output_multiple() instead. See my previous e-mail for an 
+example.
+https://lists.gnu.org/archive/html/discuss-gnuradio/2019-08/msg00188.html
+*/
 }
 
 void acars_impl::set_seuil(float seuil1)
@@ -73,8 +80,8 @@ int acars_impl::work(int noutput_items,
  _N=noutput_items;
  data=(float*)malloc(_N*sizeof(float));
  if (_threshold==0.)
-    {_threshold=remove_avgf(in,data,_N);std=_threshold;}    // d=d-mean(m); -> returns std()
- else std=remove_avgf(in,data,_N);        // d=d-mean(m); -> returns std()
+    {_threshold=remove_avgf(in,data,_N);std=_threshold;} 
+ else std=remove_avgf(in,data,_N); // d=d-mean(m); -> returns std()
 
  if ((std>(_seuil*_threshold))||(_decompte>0))   // ACARS sentence detected: accumulate
     {// printf("%d\tdetected %f\n",_N,std*1000.);
@@ -82,22 +89,25 @@ int acars_impl::work(int noutput_items,
      _Ntot+=_N;
      _decompte++;if (_decompte==3) _decompte=0;
     }
- else                                    // NO ACARS detected => decode if we had some data
-    {_threshold=std;                      // update threshold
+ else                                      // NO ACARS detected => decode if we had some data
+    {_threshold=std;                       // update threshold
      // printf("%d\t no %f\n",_N,std*1000.);
-     if (_Ntot>0)                         // we had some data => process
+     if (_Ntot>0)                          // we had some data => process
        {printf("threshold: %f processing length: %d ",_threshold,_Ntot);
         remove_avgf(_d,_d,_Ntot);
         pos_start=0;
-        while ((_d[pos_start]<(_seuil*_threshold))&&(pos_start<_Ntot)) pos_start++; // get beginning
+        while ((_d[pos_start]<(_seuil*_threshold))&&(pos_start<_Ntot)) 
+              pos_start++;                 // get beginning
+#ifdef jmfdebug
         printf("start: %d, ",pos_start);fflush(stdout);
+#endif
         pos_end=_Ntot-1;
-        while (_d[pos_end]<(_seuil*_threshold)) pos_end--;     // get end
+        while (_d[pos_end]<(_seuil*_threshold)) 
+              pos_end--;                   // get end
+#ifdef jmfdebug
         printf("end: %d\n",pos_end);fflush(stdout);
-        if (pos_end>pos_start) 
-           {
-            acars_dec(&_d[pos_start], pos_end-pos_start);
-           }
+#endif
+        if (pos_end>pos_start) acars_dec(&_d[pos_start], pos_end-pos_start);
            else printf("Error: pos_end<pos_start\n");
         _Ntot=0;                         // finished processing: clear buffer
        }
@@ -115,6 +125,7 @@ acars_impl::~acars_impl ()
  free(_toutd);
  free(_message);
  free(_somme);
+ free(_d);
 }
 
 // http://www.scancat.com/Code-30_html_Source/acars.html
@@ -131,11 +142,11 @@ void acars_impl::acars_parse(char *message,int ends)
             {if (message[17]==0x02) {printf("STX\n"); fprintf(_FILE, "STX\n");}
              if (ends>=21) 
                 {printf("Seq. No="); fprintf(_FILE, "Seq. No=");
-                 for (k=18;k<22;k++) {printf("%02x ",message[k]); fprintf(_FILE, "%02x ",message[k]);}
+                 for (k=18;k<22;k++) 
+                     {printf("%02x ",message[k]); fprintf(_FILE, "%02x ",message[k]);}
                  for (k=18;k<22;k++) 
                      if ((message[k]>=32) || (message[k]==0x10) || (message[k]==0x13))
-                        {printf("%c",message[k]); fprintf(_FILE, "%c",message[k]);
-                        }
+                        {printf("%c",message[k]); fprintf(_FILE, "%c",message[k]);}
                  printf("\n"); fprintf(_FILE, "\n");
                  if (ends>=27) 
                     {printf("Flight="); fprintf(_FILE, "Flight=");
@@ -181,6 +192,13 @@ void acars_impl::acars_dec(float *d,int N)
  FILE *fil;
  gr_complex mul;
  gr_complex *tmp, *_c1200, *_c2400, *_signal, *_fc1200, *_fc2400, *_fsignal, *_ffc1200, *_ffc2400;
+/*
+Sylvain Munaut (April 5, 2020 3:29 PM)
+In CMakeList.txt:
+find_package(Gnuradio "3.8" REQUIRED COMPONENTS fft)
+In lib/CMakeList.txt :
+target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
+*/
  fft::fft_complex* plan_1200 = new fft::fft_complex(N, true);
  fft::fft_complex* plan_2400 = new fft::fft_complex(N, true);
  fft::fft_complex* plan_sign = new fft::fft_complex(N, true);
@@ -190,7 +208,7 @@ void acars_impl::acars_dec(float *d,int N)
  _c2400=plan_2400->get_inbuf();
  for (t=0;t<40;t++)                          //  convolution with *2* periods
      _c2400[t]=gr_complex{(float)cos((float)t*2400./fe*2*M_PI),(float)sin((float)t*2400./fe*2*M_PI)}; 
- for (t=40;t<N;t++)     // zero padding
+ for (t=40;t<N;t++)                          // zero padding
      _c2400[t]=gr_complex{0.,0.}; 
 
  _c1200=plan_1200->get_inbuf();
@@ -204,7 +222,8 @@ void acars_impl::acars_dec(float *d,int N)
      _signal[t]=gr_complex{d[t],0.};
  time(&tm);
  sprintf(s,"%s",ctime(&tm));
- printf("\n%s",s);
+ printf("\n%s\n",s);
+ fprintf(_FILE,"\n%s\n",s);
 #ifdef jmfdebug
  printf("len=%d\n",N);
 #endif
@@ -240,7 +259,7 @@ void acars_impl::acars_dec(float *d,int N)
  delete plan_sign;
  _c1200=plan_R1200->get_outbuf();
  _c2400=plan_R2400->get_outbuf();
- // printf("writing file\n");
+ // printf("writing file\n");     // dump raw data for post-processing
  // fil=fopen("/tmp/out","w+");
  // for (t=0;t<N;t++) 
  //     fprintf(fil,"%f %f %f %f %f\n",d[t],_c1200[t].real(),_c1200[t].imag(),_c2400[t].real(),_c2400[t].imag());
@@ -256,7 +275,9 @@ void acars_impl::acars_dec(float *d,int N)
                      }
  k=200;
  do {k++;} while (_c2400[k].real()>0.5*max2400);  // header as long as 2400 is strong
+#ifdef jmfdebug
  printf("max2400=%f -> k=%d\n",max2400,k);
+#endif
 // k at the beginning of the frame
  k+=10; // move to the center of the first bit
 

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2020 gr-acars author.
+ * Copyright 2020 JM Friedt
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,19 +35,14 @@ namespace gr {
     class acars_impl : public acars
     {
      private:
-        int _pos;
         int _Ntot;
         int _N;
         float _threshold;
-        int _total;
-        int _decompte;
-        int _acq;
-        int _filenum;
-        float *_d;
-        float _seuil;
-        FILE *_FILE;
-        float *_dm;
-        char *_toutd,*_tout,*_message,*_somme;
+        int _decompte;  // accumulate more sentences than needed (in case of a gap)
+        float *_d;      // raw data
+        float _seuil;   // threshold value (multiply std with this value to detect msg)
+        FILE *_FILE;    // output file descriptor
+        char *_toutd,*_tout,*_message,*_somme; // digital messages
         void acars_parse (char *message,int ends);
         float remove_avgf(const float *d,float *out,int tot_len);
         void acars_dec(float *d,int N);
