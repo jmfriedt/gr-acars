@@ -45,7 +45,7 @@ namespace gr {
        * class. acars::acars::make is the public interface for
        * creating new instances.
        */
-      static sptr make(float seuil, std::string filename);
+      static sptr make(float seuil, std::string filename, bool saveall);
       virtual void set_seuil(float)=0;
     };
 

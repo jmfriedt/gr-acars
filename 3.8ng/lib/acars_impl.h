@@ -38,6 +38,7 @@ namespace gr {
         int _Ntot;
         int _N;
         float _threshold;
+	int _savenum;
         int _decompte;  // accumulate more sentences than needed (in case of a gap)
         float *_d;      // raw data
         float _seuil;   // threshold value (multiply std with this value to detect msg)
@@ -49,7 +50,7 @@ namespace gr {
 
      public:
       void set_seuil(float);
-      acars_impl(float seuil, std::string filename);
+      acars_impl(float seuil, std::string filename, bool saveall);
       ~acars_impl();
 
       // Where all the action really happens

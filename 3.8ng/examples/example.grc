@@ -32,6 +32,18 @@ options:
     state: enabled
 
 blocks:
+- name: N
+  id: variable
+  parameters:
+    comment: ''
+    value: '8'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [280, 12.0]
+    rotation: 0
+    state: true
 - name: samp_rate
   id: variable
   parameters:
@@ -49,10 +61,10 @@ blocks:
   parameters:
     beta: '6.76'
     comment: ''
-    cutoff_freq: samp_rate/12
+    cutoff_freq: samp_rate/N/2
     gain: '1.0'
     samp_rate: samp_rate
-    width: samp_rate/12
+    width: samp_rate/N/2
     win: firdes.WIN_HAMMING
   states:
     bus_sink: false
@@ -68,12 +80,13 @@ blocks:
     alias: ''
     comment: ''
     filename: /tmp/log1
+    saveall: 'True'
     threshold: '3'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1152, 156.0]
+    coordinate: [1008, 156.0]
     rotation: 0
     state: true
 - name: acars_acars_0_0
@@ -83,12 +96,13 @@ blocks:
     alias: ''
     comment: ''
     filename: /tmp/log2
+    saveall: 'False'
     threshold: '3'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [728, 316.0]
+    coordinate: [728, 308.0]
     rotation: 0
     state: true
 - name: acars_acars_0_0_0
@@ -98,43 +112,24 @@ blocks:
     alias: ''
     comment: ''
     filename: /tmp/log3
+    saveall: 'False'
     threshold: '3'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [728, 412.0]
+    coordinate: [728, 404.0]
     rotation: 0
     state: true
-- name: analog_agc_xx_0
-  id: analog_agc_xx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    gain: '1.0'
-    max_gain: '65536'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    rate: 1e-4
-    reference: '1.0'
-    type: complex
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [656, 140.0]
-    rotation: 0
-    state: disabled
 - name: analog_am_demod_cf_0
   id: analog_am_demod_cf
   parameters:
     affinity: ''
     alias: ''
-    audio_decim: '4'
+    audio_decim: int(24/N)
     audio_pass: '5000'
     audio_stop: '5500'
-    chan_rate: samp_rate/6
+    chan_rate: samp_rate/N
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -142,7 +137,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [984, 140.0]
+    coordinate: [816, 148.0]
     rotation: 0
     state: true
 - name: analog_am_demod_cf_0_0
@@ -150,10 +145,10 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    audio_decim: '4'
+    audio_decim: int(24/N)
     audio_pass: '5000'
     audio_stop: '5500'
-    chan_rate: samp_rate/6
+    chan_rate: samp_rate/N
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -169,10 +164,10 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    audio_decim: '4'
+    audio_decim: int(24/N)
     audio_pass: '5000'
     audio_stop: '5500'
-    chan_rate: samp_rate/6
+    chan_rate: samp_rate/N
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -198,7 +193,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [808, 148.0]
+    coordinate: [648, 68.0]
     rotation: 0
     state: disabled
 - name: audio_sink_0
@@ -215,7 +210,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1224, 92.0]
+    coordinate: [1016, 76.0]
     rotation: 0
     state: disabled
 - name: blocks_file_source_0
@@ -256,7 +251,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [304, 164.0]
+    coordinate: [304, 172.0]
     rotation: 0
     state: true
 - name: freq_xlating_fir_filter_xxx_0
@@ -266,7 +261,7 @@ blocks:
     alias: ''
     center_freq: '200000'
     comment: ''
-    decim: '6'
+    decim: N
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: samp_rate
@@ -286,7 +281,7 @@ blocks:
     alias: ''
     center_freq: '-100000'
     comment: ''
-    decim: '6'
+    decim: N
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: samp_rate
@@ -306,21 +301,21 @@ blocks:
     alias: ''
     beta: '6.76'
     comment: ''
-    cutoff_freq: samp_rate/12
-    decim: '6'
+    cutoff_freq: samp_rate/N/2
+    decim: N
     gain: '1'
     interp: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: samp_rate
     type: fir_filter_ccf
-    width: samp_rate/12
+    width: samp_rate/N/2
     win: firdes.WIN_HAMMING
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [480, 116.0]
+    coordinate: [480, 124.0]
     rotation: 0
     state: true
 - name: osmosdr_source_0
@@ -677,7 +672,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [16, 84.0]
+    coordinate: [16, 92.0]
     rotation: 0
     state: disabled
 - name: qtgui_freq_sink_x_0
@@ -757,12 +752,11 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [360, 8.0]
+    coordinate: [456, 16.0]
     rotation: 0
-    state: true
+    state: disabled
 
 connections:
-- [analog_agc_xx_0, '0', analog_pll_carriertracking_cc_0, '0']
 - [analog_am_demod_cf_0, '0', acars_acars_0, '0']
 - [analog_am_demod_cf_0, '0', audio_sink_0, '0']
 - [analog_am_demod_cf_0_0, '0', acars_acars_0_0_0, '0']
@@ -774,8 +768,8 @@ connections:
 - [blocks_throttle_0, '0', low_pass_filter_0, '0']
 - [freq_xlating_fir_filter_xxx_0, '0', analog_am_demod_cf_0_0_0, '0']
 - [freq_xlating_fir_filter_xxx_0_0, '0', analog_am_demod_cf_0_0, '0']
-- [low_pass_filter_0, '0', analog_agc_xx_0, '0']
 - [low_pass_filter_0, '0', analog_am_demod_cf_0, '0']
+- [low_pass_filter_0, '0', analog_pll_carriertracking_cc_0, '0']
 - [osmosdr_source_0, '0', low_pass_filter_0, '0']
 - [osmosdr_source_0, '0', qtgui_freq_sink_x_0, '0']
 

@@ -23,16 +23,16 @@ namespace gr {
   namespace acars {
 
     acars::sptr
-    acars::make(float seuil, std::string filename)
+    acars::make(float seuil, std::string filename, bool saveall)
     {
       return gnuradio::get_initial_sptr
-        (new acars_impl(seuil, filename));
+        (new acars_impl(seuil, filename, saveall));
     }
 
     /*
      * The private constructor
      */
-    acars_impl::acars_impl(float seuil1, std::string filename)
+    acars_impl::acars_impl(float seuil1, std::string filename, bool saveall)
       : gr::sync_block("acars",
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0))
@@ -46,6 +46,7 @@ namespace gr {
   _threshold=0.;
   _FILE=fopen(cfilename,"a");
   _decompte=0;  
+  if (saveall==true) _savenum=1; else _savenum=0;
   set_seuil(seuil1);            
   _d=(float*)malloc(MAXSIZE*sizeof(float));
   _tout=(char*)malloc(MESSAGE*8);  // bits
@@ -259,12 +260,14 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
  delete plan_sign;
  _c1200=plan_R1200->get_outbuf();
  _c2400=plan_R2400->get_outbuf();
- // printf("writing file\n");     // dump raw data for post-processing
- // fil=fopen("/tmp/out","w+");
- // for (t=0;t<N;t++) 
- //     fprintf(fil,"%f %f %f %f %f\n",d[t],_c1200[t].real(),_c1200[t].imag(),_c2400[t].real(),_c2400[t].imag());
- // fclose(fil);
-
+ if (_savenum>0)
+   {sprintf(s,"/tmp/%s",ctime(&tm));s[strlen(s)-1]=0;
+    printf("writing file %s\n",s);     // dump raw data for post-processing
+    fil=fopen(s,"w+");
+    for (t=0;t<N;t++) 
+       fprintf(fil,"%f %f %f %f %f\n",d[t],_c1200[t].real(),_c1200[t].imag(),_c2400[t].real(),_c2400[t].imag());
+    fclose(fil);
+   }
  // skip first 200 samples
  for (k=200;k<N;k++) _c1200[k]=gr_complex{abs(_c1200[k]),0.}; 
  // gr_complex{_c1200[k].real()*_c1200[k].real()+_c1200[k].imag()*_c1200[k].imag(),0.};  // |*|^2

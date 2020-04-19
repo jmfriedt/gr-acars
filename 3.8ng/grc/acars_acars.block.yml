@@ -11,6 +11,10 @@ parameters:
   label: filename
   dtype: string
   default: '/tmp/log'
+- id: saveall
+  label: Save Raw Data
+  dtype: bool
+  default: False
 
 inputs:
 - label: in
@@ -22,7 +26,7 @@ asserts:
 
 templates:
   imports: import acars
-  make: acars.acars(${threshold}, ${filename})
+  make: acars.acars(${threshold}, ${filename}, ${saveall})
   callbacks:
    - set_seuil(${threshold})
 
