@@ -19,6 +19,9 @@
 #define MAXSIZE   (MESSAGE*8*fe) // 48000/2400=20 symbol/bit & 8 bits*260 char=41600
 #define dN  	   5      // clock tracking at +/-5 samples
 
+// https://stackoverflow.com/questions/2902064/how-to-track-down-a-double-free-or-corruption-error
+#define MALLOC_CHECK_ 2
+
 namespace gr {
   namespace acars {
 
@@ -75,7 +78,7 @@ int acars_impl::work(int noutput_items,
  {
   int k,i,t,n,pos_start,pos_end;
   float std;
-  float* data;
+  float* data=NULL;
   const float* in = (const float *) input_items[0];
 
  _N=noutput_items;
@@ -115,7 +118,7 @@ int acars_impl::work(int noutput_items,
     }
   // Tell runtime system how many input items we consumed on
   // each input stream.
- free(data);
+ if (data!=NULL) {free(data);data=NULL;}
  consume_each (_N); 
  return 0; // noutput_items;
 }
@@ -132,11 +135,13 @@ acars_impl::~acars_impl ()
 // http://www.scancat.com/Code-30_html_Source/acars.html
 void acars_impl::acars_parse(char *message,int ends)
 {int k;
+ time_t tm;
  if (ends>12)
     if ((message[0]==0x2b) && (message[1]==0x2a) && // sync
         (message[2]==0x16) && (message[3]==0x16) && // sync
         (message[4]==0x01))                         // Start Of Heading SOH
-        {printf("\nAircraft="); fprintf(_FILE ,"\nAircraft=");
+        {fprintf(_FILE,"\n%s\n",ctime(&tm));
+         printf("\nAircraft="); fprintf(_FILE ,"\nAircraft=");
          for (k=6;k<13;k++) {printf("%c",message[k]); fprintf(_FILE ,"%c",message[k]);}
          printf("\n");fprintf(_FILE,"\n");
          if (ends>17) 
@@ -224,7 +229,7 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
  time(&tm);
  sprintf(s,"%s",ctime(&tm));
  printf("\n%s\n",s);
- fprintf(_FILE,"\n%s\n",s);
+ // fprintf(_FILE,"\n%s\n",s);
 #ifdef jmfdebug
  printf("len=%d\n",N);
 #endif
@@ -240,11 +245,11 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
  for (k=0;k<N;k++) 
     {mul=_fc2400[k]*_fsignal[k];
           //_fc2400[k].real()*_fsignal[k].real()-_fc2400[k].imag()*_fsignal[k].imag(), \
-          //_fc2400[k].imag()*_fsignal[k].real()+_fc2400[k].real()*_fsignal[k].imag() };
+          //_fc2400[k].imag()*_fsignal[k].real()+_fc2400[k].real()*_fsignal[k].imag();
      _ffc2400[k]=mul/(float)N;
      mul=_fc1200[k]*_fsignal[k];
           //_fc1200[k].real()*_fsignal[k].real()-_fc1200[k].imag()*_fsignal[k].imag(), \
-          //_fc1200[k].imag()*_fsignal[k].real()+_fc1200[k].real()*_fsignal[k].imag()};
+          //_fc1200[k].imag()*_fsignal[k].real()+_fc1200[k].real()*_fsignal[k].imag();
      _ffc1200[k]=mul/(float)N;
     }
  // Low pass filter after convolution
@@ -255,17 +260,15 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
      }
  plan_R1200 -> execute();  // result in _c1200
  plan_R2400 -> execute();  // result in _c2400
- delete plan_1200;
- delete plan_2400;
- delete plan_sign;
  _c1200=plan_R1200->get_outbuf();
  _c2400=plan_R2400->get_outbuf();
  if (_savenum>0)
    {sprintf(s,"/tmp/%s",ctime(&tm));s[strlen(s)-1]=0;
     printf("writing file %s\n",s);     // dump raw data for post-processing
     fil=fopen(s,"w+");
+    fprintf(fil,"%% raw\tRe(1200)\tIm(1200)\tRe(2400)\tIm(2400)\n");
     for (t=0;t<N;t++) 
-       fprintf(fil,"%f %f %f %f %f\n",d[t],_c1200[t].real(),_c1200[t].imag(),_c2400[t].real(),_c2400[t].imag());
+       fprintf(fil,"%f\t%f\t%f\t%f\t%f\n",d[t],_c1200[t].real(),_c1200[t].imag(),_c2400[t].real(),_c2400[t].imag());
     fclose(fil);
    }
  // skip first 200 samples
@@ -312,34 +315,39 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
         k+=pos2400;
        }
    }
- delete plan_R1200;
- delete plan_R2400;
  l=0;fin=n;
- _tout[l]=1;l++;  // les deux premiers 1 sontoublies car on se sync sur 1200
+ _tout[l]=1;l++;  // les deux premiers 1 sont oublies car on se sync sur 1200
  _tout[l]=1;l++;
  for (k=0;k<fin;k++)
-    {if (_toutd[k]==0) _tout[l]=1-_tout[l-1]; else _tout[l]=_tout[l-1];
-     l++;
-    }
-   n=0;
-   for (k=0;k<fin;k+=8) 
-       {_message[n]=_tout[k]+_tout[k+1]*2+_tout[k+2]*4+_tout[k+3]*8+_tout[k+4]*16+_tout[k+5]*32+_tout[k+6]*64;
-        _somme[n]=1-(_tout[k]+_tout[k+1]+_tout[k+2]+_tout[k+3]+_tout[k+4]+_tout[k+5]+_tout[k+6]+_tout[k+7])&0x01;
-        n++;
-       }
-   fin=n; // length of message (should be tout/8)
-   n=0;
+   {if (_toutd[k]==0) _tout[l]=1-_tout[l-1]; else _tout[l]=_tout[l-1];
+    l++;
+   }
+ n=0;
+ for (k=0;k<fin;k+=8) 
+   {_message[n]=_tout[k]+_tout[k+1]*2+_tout[k+2]*4+_tout[k+3]*8+_tout[k+4]*16+_tout[k+5]*32+_tout[k+6]*64;
+    _somme[n]=1-(_tout[k]+_tout[k+1]+_tout[k+2]+_tout[k+3]+_tout[k+4]+_tout[k+5]+_tout[k+6]+_tout[k+7])&0x01;
+    n++;
+   }
+ fin=n; // length of message (should be tout/8)
 // for (k=0;k<fin;k++) {if (_message[k]==0x2b) n=k;break;} // search for the 1st 0x2b (start of message)
-   // for (k=0;k<fin;k++) {printf("%02x ",_message[k]);// fprintf(file,"%02x ",_message[k]);}
-   for (k=0;k<10;k++) {printf("%02x ",_message[k]); fprintf(_FILE,"%02x ",_message[k]);}
-   printf("\n");
-   for (k=0;k<10;k++) {printf("%02x ",_somme[k]);fprintf(_FILE,"%02x ",_message[k]);}
-   printf("\n");
-   for (k=n;k<fin;k++)
-       if ((_message[k]>=32) || (_message[k]==13) || (_message[k]==10)) 
-           {printf("%c",_message[k]);}
-   printf("\n"); fprintf(_FILE,"\n"); fflush(stdout);
-   acars_parse(&_message[n],fin-n);
+// for (k=0;k<fin;k++) {printf("%02x ",_message[k]);// fprintf(file,"%02x ",_message[k]);}
+ if (fin>10) n=10; else n=fin;
+ for (k=0;k<n;k++) {printf("%02x ",_message[k]);} // fprintf(_FILE,"%02x ",_message[k]);}
+ printf("\n");
+ for (k=0;k<n;k++) {printf("%02x ",_somme[k]);}   // fprintf(_FILE,"%02x ",_message[k]);}
+ printf("\n");
+ n=0;
+ for (k=n;k<fin;k++)
+   if ((_message[k]>=32) || (_message[k]==13) || (_message[k]==10)) 
+      printf("%c",_message[k]);
+ printf("\n"); // fprintf(_FILE,"\n"); 
+ fflush(stdout);
+ acars_parse(&_message[n],fin-n);
+ delete plan_1200;
+ delete plan_2400;
+ delete plan_sign;
+ delete plan_R1200;
+ delete plan_R2400;
 }
 //^^^^^^^^^^^^^^^^^^^^^
   } /* namespace acars */
