@@ -70,7 +70,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [880, 268.0]
+    coordinate: [880, 308.0]
     rotation: 0
     state: true
 - name: acars_acars_0
@@ -80,7 +80,7 @@ blocks:
     alias: ''
     comment: ''
     filename: /tmp/log1
-    saveall: 'True'
+    saveall: 'False'
     threshold: '3'
   states:
     bus_sink: false
