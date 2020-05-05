@@ -111,7 +111,7 @@ int acars_impl::work(int noutput_items,
 #ifdef jmfdebug
         printf("end: %d\n",pos_end);fflush(stdout);
 #endif
-        if ((pos_end>pos_start)&&((pos_end-pos_start)>40)) 
+        if ((pos_end>pos_start)&&((pos_end-pos_start)>200)) // 200 since we skip first 200 samples
            acars_dec(&_d[pos_start], pos_end-pos_start);
         else printf("Error: pos_end<pos_start: %d vs %d\n",pos_end,pos_start);
         _Ntot=0;                         // finished processing: clear buffer
@@ -228,13 +228,6 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
  _signal=plan_sign->get_inbuf();
  for (t=0;t<N;t++)     // zero padding
      _signal[t]=gr_complex{d[t],0.};
- time(&tm);
- sprintf(s,"%s",ctime(&tm));
- printf("\n%s\n",s);
- // fprintf(_FILE,"\n%s\n",s);
-#ifdef jmfdebug
- printf("len=%d\n",N);
-#endif
 
  plan_2400->execute();
  plan_1200->execute();
@@ -256,7 +249,6 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
     }
  // Low pass filter after convolution
  kcut=(int)((float)N*3500./(float)fs); // cutoff @ 3500 Hz : df=fs/length(sf);fcut=floor(3500/df);
- if (kcut>=N) printf("/!\\ kcut: %d N: %d\n",kcut,N);
  for (k=kcut;k<N-kcut;k++)   // low pass filter in Matlab FFT convention
      {_ffc2400[k]={0.,0.};   // sf2400f(fcut:end-fcut)=0; 
       _ffc1200[k]={0.,0.};   // sf1200f(fcut:end-fcut)=0; 
