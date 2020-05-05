@@ -13,10 +13,10 @@
 #include "acars_impl.h"
 #include <time.h>
 
-#define fe        48000   // sampling frequency
+#define fs        48000   // sampling frequency
 #define CHUNK_SIZE 1024   // minimum number of samples for trigger this processing block
 #define MESSAGE   (220*2) // twice the max message size !
-#define MAXSIZE   (MESSAGE*8*fe) // 48000/2400=20 symbol/bit & 8 bits*260 char=41600
+#define MAXSIZE   (MESSAGE*8*fs) // 48000/2400=20 symbol/bit & 8 bits*260 char=41600
 #define dN  	   5      // clock tracking at +/-5 samples
 
 // https://stackoverflow.com/questions/2902064/how-to-track-down-a-double-free-or-corruption-error
@@ -111,8 +111,9 @@ int acars_impl::work(int noutput_items,
 #ifdef jmfdebug
         printf("end: %d\n",pos_end);fflush(stdout);
 #endif
-        if (pos_end>pos_start) acars_dec(&_d[pos_start], pos_end-pos_start);
-           else printf("Error: pos_end<pos_start\n");
+        if ((pos_end>pos_start)&&((pos_end-pos_start)>40)) 
+           acars_dec(&_d[pos_start], pos_end-pos_start);
+        else printf("Error: pos_end<pos_start: %d vs %d\n",pos_end,pos_start);
         _Ntot=0;                         // finished processing: clear buffer
        }
     }
@@ -140,7 +141,8 @@ void acars_impl::acars_parse(char *message,int ends)
     if ((message[0]==0x2b) && (message[1]==0x2a) && // sync
         (message[2]==0x16) && (message[3]==0x16) && // sync
         (message[4]==0x01))                         // Start Of Heading SOH
-        {fprintf(_FILE,"\n%s\n",ctime(&tm));
+        {time(&tm);
+	 fprintf(_FILE,"\n%s",ctime(&tm));
          printf("\nAircraft="); fprintf(_FILE ,"\nAircraft=");
          for (k=6;k<13;k++) {printf("%c",message[k]); fprintf(_FILE ,"%c",message[k]);}
          printf("\n");fprintf(_FILE,"\n");
@@ -213,13 +215,13 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
 
  _c2400=plan_2400->get_inbuf();
  for (t=0;t<40;t++)                          //  convolution with *2* periods
-     _c2400[t]=gr_complex{(float)cos((float)t*2400./fe*2*M_PI),(float)sin((float)t*2400./fe*2*M_PI)}; 
+     _c2400[t]=gr_complex{(float)cos((float)t*2400./fs*2*M_PI),(float)sin((float)t*2400./fs*2*M_PI)}; 
  for (t=40;t<N;t++)                          // zero padding
      _c2400[t]=gr_complex{0.,0.}; 
 
  _c1200=plan_1200->get_inbuf();
  for (t=0;t<40;t++)                          //  convolution with *2* periods
-     _c1200[t]=gr_complex{(float)cos((float)t*1200./fe*2*M_PI),(float)sin((float)t*1200./fe*2*M_PI)}; 
+     _c1200[t]=gr_complex{(float)cos((float)t*1200./fs*2*M_PI),(float)sin((float)t*1200./fs*2*M_PI)}; 
  for (t=40;t<N;t++)     // zero padding
      _c1200[t]=gr_complex{0.,0.}; 
  
@@ -253,17 +255,19 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
      _ffc1200[k]=mul/(float)N;
     }
  // Low pass filter after convolution
- kcut=(int)((float)N*3500./(float)fe); // cutoff @ 3500 Hz : df=fs/length(sf);fcut=floor(3500/df);
+ kcut=(int)((float)N*3500./(float)fs); // cutoff @ 3500 Hz : df=fs/length(sf);fcut=floor(3500/df);
+ if (kcut>=N) printf("/!\\ kcut: %d N: %d\n",kcut,N);
  for (k=kcut;k<N-kcut;k++)   // low pass filter in Matlab FFT convention
-     {_ffc2400[k]={0.,0.};      // sf2400f(fcut:end-fcut)=0; 
-      _ffc1200[k]={0.,0.};    // sf1200f(fcut:end-fcut)=0; 
+     {_ffc2400[k]={0.,0.};   // sf2400f(fcut:end-fcut)=0; 
+      _ffc1200[k]={0.,0.};   // sf1200f(fcut:end-fcut)=0; 
      }
- plan_R1200 -> execute();  // result in _c1200
- plan_R2400 -> execute();  // result in _c2400
+ plan_R1200 -> execute();    // result in _c1200
+ plan_R2400 -> execute();    // result in _c2400
  _c1200=plan_R1200->get_outbuf();
  _c2400=plan_R2400->get_outbuf();
  if (_savenum>0)
-   {sprintf(s,"/tmp/%s",ctime(&tm));s[strlen(s)-1]=0;
+   {time(&tm);
+    sprintf(s,"/tmp/%s",ctime(&tm));s[strlen(s)-1]=0;
     printf("writing file %s\n",s);     // dump raw data for post-processing
     fil=fopen(s,"w+");
     fprintf(fil,"%% raw\tRe(1200)\tIm(1200)\tRe(2400)\tIm(2400)\n");
@@ -271,78 +275,84 @@ target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
        fprintf(fil,"%f\t%f\t%f\t%f\t%f\n",d[t],_c1200[t].real(),_c1200[t].imag(),_c2400[t].real(),_c2400[t].imag());
     fclose(fil);
    }
- // skip first 200 samples
- for (k=200;k<N;k++) _c1200[k]=gr_complex{abs(_c1200[k]),0.}; 
- // gr_complex{_c1200[k].real()*_c1200[k].real()+_c1200[k].imag()*_c1200[k].imag(),0.};  // |*|^2
- max2400=0.;
- for (k=200;k<N;k++) {_c2400[k]=gr_complex{abs(_c2400[k]),0.}; 
- // gr_complex{_c2400[k].real()*_c2400[k].real()+_c2400[k].imag()*_c2400[k].imag(),0.}; // |*|^2
-                      if (_c2400[k].real()>max2400) max2400=_c2400[k].real();
-                     }
- k=200;
- do {k++;} while (_c2400[k].real()>0.5*max2400);  // header as long as 2400 is strong
+ // skip first 200 samples: we KNOW that N>200
+ {
+   time(&tm);
+   sprintf(s,"%s",ctime(&tm));
+   printf("\n%s\n",s);
+   // fprintf(_FILE,"\n%s\n",s);
+   for (k=200;k<N;k++) _c1200[k]=gr_complex{abs(_c1200[k]),0.}; 
+   // gr_complex{_c1200[k].real()*_c1200[k].real()+_c1200[k].imag()*_c1200[k].imag(),0.};  // |*|^2
+   max2400=0.;
+   for (k=200;k<N;k++) {_c2400[k]=gr_complex{abs(_c2400[k]),0.}; 
+   // gr_complex{_c2400[k].real()*_c2400[k].real()+_c2400[k].imag()*_c2400[k].imag(),0.}; // |*|^2
+                        if (_c2400[k].real()>max2400) max2400=_c2400[k].real();
+                       }
+   k=200;
+   do {k++;} while (_c2400[k].real()>0.5*max2400);  // header as long as 2400 is strong
 #ifdef jmfdebug
- printf("max2400=%f -> k=%d\n",max2400,k);
+   printf("max2400=%f -> k=%d\n",max2400,k);
 #endif
 // k at the beginning of the frame
- k+=10; // move to the center of the first bit
+   k+=10; // move to the center of the first bit
 
- _toutd[0]=0;
- n=1;
+   _toutd[0]=0;
+   n=1;
  // now clock recovery ...
- while (k<N-40)
-   {k+=20;
-    if (_c2400[k].real()>_c1200[k].real()) _toutd[n]=1; else _toutd[n]=0;
-    n++;
-    if ((_c2400[k].real()>_c1200[k].real()) && ((_c1200[k+20].real()>_c2400[k+20].real())) && (_c1200[k-20].real()>_c2400[k-20].real()))
-       {max2400=_c2400[k-dN].real();pos2400=-dN;
-        for (l=-dN+1;l<=dN;l++)
-            {// printf("\tk:%d l:%d 2400:%f 1200:%f max2400:%f\n",k,l,_c2400[k+l].real(),_c1200[k+l].real(),max2400);
-             if (_c2400[k+l].real()>max2400)  // [m,p]=max(s2400(pos-3:pos+3));
-                {max2400=_c2400[k+l].real();pos2400=l;} 
-            } 
-        // if (pos2400!=0) printf("%d: correct2400 %d\n",k,pos2400);
-        k+=pos2400;
-       }
-    if ((_c1200[k].real()>_c2400[k].real()) && ((_c2400[k+20].real()>_c1200[k+20].real())) && (_c2400[k-20].real()>_c1200[k-20].real()))
-       {max2400=_c1200[k-dN].real();pos2400=-dN;
-        for (l=-dN+1;l<=dN;l++)
-            {// printf("\t2400:%f 1200:%f max2400:%f\n",_c2400[k+l].real(),_c1200[k+l].real(),max2400);
-             if (_c1200[k+l].real()>max2400)  // [m,p]=max(s1200(pos-3:pos+3));
-                {max2400=_c1200[k+l].real();pos2400=l;} 
-            } 
-        // if (pos2400!=0) printf("%d: correct1200: %d\n",k,pos2400);
-        k+=pos2400;
-       }
-   }
- l=0;fin=n;
- _tout[l]=1;l++;  // les deux premiers 1 sont oublies car on se sync sur 1200
- _tout[l]=1;l++;
- for (k=0;k<fin;k++)
-   {if (_toutd[k]==0) _tout[l]=1-_tout[l-1]; else _tout[l]=_tout[l-1];
-    l++;
-   }
- n=0;
- for (k=0;k<fin;k+=8) 
-   {_message[n]=_tout[k]+_tout[k+1]*2+_tout[k+2]*4+_tout[k+3]*8+_tout[k+4]*16+_tout[k+5]*32+_tout[k+6]*64;
-    _somme[n]=1-(_tout[k]+_tout[k+1]+_tout[k+2]+_tout[k+3]+_tout[k+4]+_tout[k+5]+_tout[k+6]+_tout[k+7])&0x01;
-    n++;
-   }
- fin=n; // length of message (should be tout/8)
+   while (k<N-40)
+     {k+=20;
+      if (_c2400[k].real()>_c1200[k].real()) _toutd[n]=1; else _toutd[n]=0;
+      n++;
+      if ((_c2400[k].real()>_c1200[k].real()) && ((_c1200[k+20].real()>_c2400[k+20].real())) && (_c1200[k-20].real()>_c2400[k-20].real()))
+         {max2400=_c2400[k-dN].real();pos2400=-dN;
+          for (l=-dN+1;l<=dN;l++)
+              {// printf("\tk:%d l:%d 2400:%f 1200:%f max2400:%f\n",k,l,_c2400[k+l].real(),_c1200[k+l].real(),max2400);
+               if (_c2400[k+l].real()>max2400)  // [m,p]=max(s2400(pos-3:pos+3));
+                  {max2400=_c2400[k+l].real();pos2400=l;} 
+              } 
+          // if (pos2400!=0) printf("%d: correct2400 %d\n",k,pos2400);
+          k+=pos2400;
+         }
+      if ((_c1200[k].real()>_c2400[k].real()) && ((_c2400[k+20].real()>_c1200[k+20].real())) && (_c2400[k-20].real()>_c1200[k-20].real()))
+         {max2400=_c1200[k-dN].real();pos2400=-dN;
+          for (l=-dN+1;l<=dN;l++)
+              {// printf("\t2400:%f 1200:%f max2400:%f\n",_c2400[k+l].real(),_c1200[k+l].real(),max2400);
+               if (_c1200[k+l].real()>max2400)  // [m,p]=max(s1200(pos-3:pos+3));
+                  {max2400=_c1200[k+l].real();pos2400=l;} 
+              } 
+          // if (pos2400!=0) printf("%d: correct1200: %d\n",k,pos2400);
+          k+=pos2400;
+         }
+     }
+   l=0;fin=n;
+   _tout[l]=1;l++;  // les deux premiers 1 sont oublies car on se sync sur 1200
+   _tout[l]=1;l++;
+   for (k=0;k<fin;k++)
+     {if (_toutd[k]==0) _tout[l]=1-_tout[l-1]; else _tout[l]=_tout[l-1];
+      l++;
+     }
+   n=0;
+   for (k=0;k<fin;k+=8) 
+     {_message[n]=_tout[k]+_tout[k+1]*2+_tout[k+2]*4+_tout[k+3]*8+_tout[k+4]*16+_tout[k+5]*32+_tout[k+6]*64;
+      _somme[n]=1-(_tout[k]+_tout[k+1]+_tout[k+2]+_tout[k+3]+_tout[k+4]+_tout[k+5]+_tout[k+6]+_tout[k+7])&0x01;
+      n++;
+     }
+   fin=n; // length of message (should be tout/8)
 // for (k=0;k<fin;k++) {if (_message[k]==0x2b) n=k;break;} // search for the 1st 0x2b (start of message)
 // for (k=0;k<fin;k++) {printf("%02x ",_message[k]);// fprintf(file,"%02x ",_message[k]);}
- if (fin>10) n=10; else n=fin;
- for (k=0;k<n;k++) {printf("%02x ",_message[k]);} // fprintf(_FILE,"%02x ",_message[k]);}
- printf("\n");
- for (k=0;k<n;k++) {printf("%02x ",_somme[k]);}   // fprintf(_FILE,"%02x ",_message[k]);}
- printf("\n");
- n=0;
- for (k=n;k<fin;k++)
-   if ((_message[k]>=32) || (_message[k]==13) || (_message[k]==10)) 
-      printf("%c",_message[k]);
- printf("\n"); // fprintf(_FILE,"\n"); 
- fflush(stdout);
- acars_parse(&_message[n],fin-n);
+   if (fin>10) n=10; else n=fin;
+   for (k=0;k<n;k++) {printf("%02x ",_message[k]);} // fprintf(_FILE,"%02x ",_message[k]);}
+   printf("\n");
+   for (k=0;k<n;k++) {printf("%02x ",_somme[k]);}   // fprintf(_FILE,"%02x ",_message[k]);}
+   printf("\n");
+   n=0;
+   for (k=n;k<fin;k++)
+     if ((_message[k]>=32) || (_message[k]==13) || (_message[k]==10)) 
+        printf("%c",_message[k]);
+   printf("\n"); // fprintf(_FILE,"\n"); 
+   fflush(stdout);
+   acars_parse(&_message[n],fin-n);
+ } // end of N<200
  delete plan_1200;
  delete plan_2400;
  delete plan_sign;
