@@ -124,12 +124,6 @@ else(DOXYGEN_FOUND)
     option(ENABLE_DOXYGEN "Build docs using Doxygen" OFF)
 endif(DOXYGEN_FOUND)
 
-#### FFTW3 jmfriedt ####
-find_package(FFTW)
-
-INCLUDE_DIRECTORIES(${FFTW_INCLUDE_DIR})
-LINK_LIBRARIES(${FFTW_LIBRARIES})
-
 ########################################################################
 # Create uninstall target
 ########################################################################
