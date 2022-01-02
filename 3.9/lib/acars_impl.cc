@@ -11,6 +11,7 @@
 
 #include "acars_impl.h"
 #include <gnuradio/io_signature.h>
+#include <gnuradio/fft/fft.h>
 #include <time.h>
 
 #define fs        48000   // sampling frequency
@@ -27,7 +28,7 @@ namespace acars {
 
 using input_type = float;
 acars::sptr acars::make(float seuil, std::string filename, bool saveall)
-    { return gnuradio::make_block_sptr (seuil, filename, saveall));
+    { return gnuradio::make_block_sptr<acars_impl>(seuil, filename, saveall);
     }
 
     /*
@@ -71,8 +72,8 @@ void acars_impl::set_seuil(float seuil1)
 }
 
 int acars_impl::work(int noutput_items,
-        gr_vector_const_void_star &input_items,
-        gr_vector_void_star &output_items)
+        gr_vector_const_void_star& input_items,
+        gr_vector_void_star& output_items)
  {
   int k,i,t,n,pos_start,pos_end;
   float std;
@@ -205,11 +206,17 @@ find_package(Gnuradio "3.8" REQUIRED COMPONENTS fft)
 In lib/CMakeList.txt :
 target_link_libraries(your-oot-name gnuradio::gnuradio-fft)
 */
- fft::fft_complex* plan_1200 = new fft::fft_complex(N, true);
- fft::fft_complex* plan_2400 = new fft::fft_complex(N, true);
- fft::fft_complex* plan_sign = new fft::fft_complex(N, true);
- fft::fft_complex* plan_R1200= new fft::fft_complex(N, false);
- fft::fft_complex* plan_R2400= new fft::fft_complex(N, false);
+
+/* jmfriedt 220102 : see gnuradio-3.9.3.0/gr-qtgui/lib/freq_sink_c_impl.cc 
+                         gnuradio-3.9.3.0/gr-qtgui/lib/freq_sink_c_impl.h 
+   for an example of GNU Radio 3.9 FFT usage
+*/
+ fft::fft_complex_fwd* plan_1200=new fft::fft_complex_fwd(N);
+ fft::fft_complex_fwd* plan_2400=new fft::fft_complex_fwd(N);
+ fft::fft_complex_fwd* plan_sign=new fft::fft_complex_fwd(N);
+ fft::fft_complex_rev* plan_R1200=new fft::fft_complex_rev(N);
+ fft::fft_complex_rev* plan_R2400=new fft::fft_complex_rev(N); // there also exists fft_real_fwd and rev if needed
+// std::unique_ptr<fft::fft_complex_rev> plan_R2400=new std::make_unique<fft::fft_complex_rev>(N); // there also exists fft_real_fwd and rev if needed
 
  _c2400=plan_2400->get_inbuf();
  for (t=0;t<40;t++)                          //  convolution with *2* periods
