@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(acars.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(f5dce6e9e4904104b2afc65942752ed1)                     */
+/* BINDTOOL_HEADER_FILE_HASH(701a7a3f39cefe50a843014f55a9d9b8)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -29,7 +29,9 @@ namespace py = pybind11;
 
 void bind_acars(py::module& m)
 {
+
     using acars    = ::gr::acars::acars;
+
 
     py::class_<acars, gr::sync_block, gr::block, gr::basic_block,
         std::shared_ptr<acars>>(m, "acars", D(acars))
@@ -40,9 +42,28 @@ void bind_acars(py::module& m)
            py::arg("saveall"),
            D(acars,make)
         )
+        
 
+
+
+
+        
         .def("set_seuil",&acars::set_seuil,       
             py::arg("arg0"),
             D(acars,set_seuil)
-        );
+        )
+
+        ;
+
+
+
+
 }
+
+
+
+
+
+
+
+

@@ -73,8 +73,9 @@ ENDIF()
 ########################################################################
 # Install directories
 ########################################################################
-find_package(Gnuradio "3.9" REQUIRED)
+find_package(Gnuradio "3.9" REQUIRED COMPONENTS fft)
 include(GrVersion)
+target_link_libraries(gnuradio::gnuradio-fft)
 
 include(GrPlatform) #define LIB_SUFFIX
 
@@ -122,6 +123,12 @@ if(DOXYGEN_FOUND)
 else(DOXYGEN_FOUND)
     option(ENABLE_DOXYGEN "Build docs using Doxygen" OFF)
 endif(DOXYGEN_FOUND)
+
+#### FFTW3 jmfriedt ####
+find_package(FFTW)
+
+INCLUDE_DIRECTORIES(${FFTW_INCLUDE_DIR})
+LINK_LIBRARIES(${FFTW_LIBRARIES})
 
 ########################################################################
 # Create uninstall target

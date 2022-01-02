@@ -49,7 +49,7 @@ namespace gr {
         void acars_dec(float *d,int N);
 
      public:
-      void set_seuil(float);
+      void set_seuil(float seuil1);
       acars_impl(float seuil, std::string filename, bool saveall);
       ~acars_impl();
 
