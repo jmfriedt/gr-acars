@@ -70,7 +70,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [880, 308.0]
+    coordinate: [944, 308.0]
     rotation: 0
     state: true
 - name: acars_acars_0
@@ -79,7 +79,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    filename: /tmp/log1
+    filename: /tmp/log0
     saveall: 'False'
     threshold: '3'
   states:
@@ -95,14 +95,14 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    filename: /tmp/log2
+    filename: /tmp/logp200
     saveall: 'False'
     threshold: '3'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [728, 308.0]
+    coordinate: [792, 308.0]
     rotation: 0
     state: true
 - name: acars_acars_0_0_0
@@ -111,14 +111,14 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    filename: /tmp/log3
+    filename: /tmp/logm100
     saveall: 'False'
     threshold: '3'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [728, 404.0]
+    coordinate: [792, 404.0]
     rotation: 0
     state: true
 - name: analog_am_demod_cf_0
@@ -156,7 +156,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [536, 396.0]
+    coordinate: [600, 396.0]
     rotation: 0
     state: true
 - name: analog_am_demod_cf_0_0_0
@@ -175,7 +175,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [536, 300.0]
+    coordinate: [600, 300.0]
     rotation: 0
     state: true
 - name: analog_pll_carriertracking_cc_0
@@ -210,7 +210,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1016, 76.0]
+    coordinate: [1024, 76.0]
     rotation: 0
     state: disabled
 - name: blocks_file_source_0
@@ -234,7 +234,7 @@ blocks:
     bus_structure: null
     coordinate: [24, 324.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: blocks_throttle_0
   id: blocks_throttle
   parameters:
@@ -253,7 +253,7 @@ blocks:
     bus_structure: null
     coordinate: [304, 172.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: freq_xlating_fir_filter_xxx_0
   id: freq_xlating_fir_filter_xxx
   parameters:
@@ -271,7 +271,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [280, 300.0]
+    coordinate: [344, 300.0]
     rotation: 0
     state: enabled
 - name: freq_xlating_fir_filter_xxx_0_0
@@ -291,7 +291,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [280, 396.0]
+    coordinate: [344, 396.0]
     rotation: 0
     state: enabled
 - name: low_pass_filter_0
@@ -525,7 +525,7 @@ blocks:
     freq7: 100e6
     freq8: 100e6
     freq9: 100e6
-    gain0: '49'
+    gain0: '40'
     gain1: '10'
     gain10: '10'
     gain11: '10'
@@ -672,9 +672,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [16, 92.0]
+    coordinate: [8, 92.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: qtgui_freq_sink_x_0
   id: qtgui_freq_sink_x
   parameters:
@@ -754,7 +754,7 @@ blocks:
     bus_structure: null
     coordinate: [456, 16.0]
     rotation: 0
-    state: disabled
+    state: enabled
 
 connections:
 - [analog_am_demod_cf_0, '0', acars_acars_0, '0']
@@ -770,6 +770,8 @@ connections:
 - [freq_xlating_fir_filter_xxx_0_0, '0', analog_am_demod_cf_0_0, '0']
 - [low_pass_filter_0, '0', analog_am_demod_cf_0, '0']
 - [low_pass_filter_0, '0', analog_pll_carriertracking_cc_0, '0']
+- [osmosdr_source_0, '0', freq_xlating_fir_filter_xxx_0, '0']
+- [osmosdr_source_0, '0', freq_xlating_fir_filter_xxx_0_0, '0']
 - [osmosdr_source_0, '0', low_pass_filter_0, '0']
 - [osmosdr_source_0, '0', qtgui_freq_sink_x_0, '0']
 
