@@ -1,3 +1,15 @@
-It is considered good practice to add examples in here to demonstrate the
-functionality of your OOT module. Python scripts, GRC flow graphs or other
-code can go here.
+For compiling:
+on the PC
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr  ../
+make
+sudo make install
+
+cross-compiling with Buildroot assumed to be installed in $BUILDROOT
+mkdir build
+cd build
+mkdir /tmp/t                 # clean directory for install
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/tmp/t -DCMAKE_TOOLCHAIN_FILE=${BUILDROOT}/output/host/share/buildroot/toolchainfile.cmake -Dpybind11_DIR=${BUILDROOT}/output/build/python-pybind-2.6.1/build/lib/pybind11/share/cmake/pybind11/ ../
+make install
+scp -r /tmp/t root@$IP:/usr  # assumes the target to be accessible at $IP
