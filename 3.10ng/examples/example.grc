@@ -65,6 +65,7 @@ blocks:
     cutoff_freq: samp_rate/N/2
     gain: '1.0'
     samp_rate: samp_rate
+    value: ''
     width: samp_rate/N/2
     win: window.WIN_HAMMING
   states:
@@ -72,6 +73,21 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [1168, 20.0]
+    rotation: 0
+    state: true
+- name: threshold
+  id: variable_qtgui_entry
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: ''
+    type: real
+    value: '3'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [864, 48.0]
     rotation: 0
     state: true
 - name: acars_acars_0
@@ -82,7 +98,7 @@ blocks:
     comment: ''
     filename: /tmp/log0
     saveall: 'False'
-    threshold: '3'
+    threshold: threshold
   states:
     bus_sink: false
     bus_source: false
@@ -98,7 +114,7 @@ blocks:
     comment: ''
     filename: /tmp/logp200
     saveall: 'False'
-    threshold: '3'
+    threshold: threshold
   states:
     bus_sink: false
     bus_source: false
@@ -114,7 +130,7 @@ blocks:
     comment: ''
     filename: /tmp/logm100
     saveall: 'False'
-    threshold: '3'
+    threshold: threshold
   states:
     bus_sink: false
     bus_source: false
@@ -138,7 +154,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [816, 148.0]
+    coordinate: [816, 152.0]
     rotation: 0
     state: true
 - name: analog_am_demod_cf_0_0
@@ -780,4 +796,4 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: v3.11.0.0git-46-g614681ba
+  grc_version: 3.10.5.1
