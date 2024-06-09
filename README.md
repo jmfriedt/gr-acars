@@ -39,4 +39,4 @@ make install
 
 <img src="3.7.5/examples/DSC01883_small.png">
 
-<img src="3.7.5/examples/acars_sendai2.png>
+<img src="3.7.5/examples/acars_sendai2.png">
